@@ -5,7 +5,7 @@
 
 ### 18 march 2026
 
-> kaomoji rest api for you
+> a collection of kaomoji face, rest api for you
 
 this project consist of a **pet counter** and a **kaomoji collection**
 
@@ -14,22 +14,20 @@ a hardcoded collection of text faces, for now.
 ## explore
 
 - [kaomoji-api](#kaomoji-api)
-    - [18 march 2026](#18-march-2026)
-  - [explore](#explore)
-  - [links](#links)
-  - [endpoint](#endpoint)
+  - [live url](#live-url)
+  - [endpoints](#endpoints)
   - [kaomoji collection list](#kaomoji-collection-list)
   - [what i learned](#what-i-learned)
   - [stack](#stack)
   - [find me](#find-me)
 
-## links
+## live url
 
 check the api here: [kaomoji-api]
 
 check out the openapi documentation here: [kaomoji-api openapi docs]
 
-## endpoint
+## endpoints
 
 | method | what it does |
 | ------------- | ----------------------------------------------------------------------------- |
@@ -44,38 +42,37 @@ check out the openapi documentation here: [kaomoji-api openapi docs]
 
 | kaomoji | name |
 | ------------- | ----------------------------------------------------------------------------- |
-| `ᵔᴥᵔ` | **happy bear** |
-| `◉‿◉` | **big eyes** |
-| `(｡◕‿◕｡)` | **cute smile** |
-| `ʘ‿ʘ` | **innocent** |
-| `¯\_(ツ)_/¯` | **shrug** |
-| `ʕ•ᴥ•ʔ` | **bear friend** |
-| `(☞ﾟヮﾟ)☞` | **finger guns right** |
-| `☜(ﾟヮﾟ☜)` | **finger guns left** |
-| `( ͡° ͜ʖ ͡°)` | **lenny** |
-| `༼ つ ◕_◕ ༽つ` | **give me** |
-| `(⌐■_■)` | **deal with it** |
-| `(づ｡◕‿‿◕｡)づ` | **hug coming** |
-| `(╯°□°)╯︵ ┻━┻` | **table flip** |
-| `ಠ_ಠ` | **look of disapproval** |
-| `ლ(ಠ益ಠλ)` | **why** |
-| `(ノಠ益ಠ)ノ彡┻━┻` | **angry table flip** |
-| `ಥ_ಥ` | **cry** |
-| `┬─┬ノ( º _ ºノ)` | **table respect** |
-| `༼ຈل͜ຈ༽` | **lenny creeper** |
-| `ᕦ(ò_óˇ)ᕤ` | **buff** |
-| `(つ ͡° ͜ʖ ͡°)つ` | **come at me** |
+| `ᵔᴥᵔ` | happy bear |
+| `◉‿◉` | big eyes |
+| `(｡◕‿◕｡)` | cute smile |
+| `ʘ‿ʘ` | innocent |
+| `¯\_(ツ)_/¯` | shrug |
+| `ʕ•ᴥ•ʔ` | bear friend |
+| `(☞ﾟヮﾟ)☞` | finger guns right |
+| `☜(ﾟヮﾟ☜)` | finger guns left |
+| `( ͡° ͜ʖ ͡°)` | lenny |
+| `༼ つ ◕_◕ ༽つ` | give me |
+| `(⌐■_■)` | deal with it |
+| `(づ｡◕‿‿◕｡)づ` | hug coming |
+| `(╯°□°)╯︵ ┻━┻` | table flip |
+| `ಠ_ಠ` | look of disapproval |
+| `ლ(ಠ益ಠλ)` | why |
+| `(ノಠ益ಠ)ノ彡┻━┻` | angry table flip |
+| `ಥ_ಥ` | cry |
+| `┬─┬ノ( º _ ºノ)` | table respect |
+| `༼ຈل͜ຈ༽` | lenny creeper |
+| `ᕦ(ò_óˇ)ᕤ` | buff |
+| `(つ ͡° ͜ʖ ͡°)つ` | come at me |
 
 ## what i learned
 
 - codecov now supports tokenless reporting, just do this:
 
-```yml
-- name: Upload coverage
-  uses: codecov/codecov-action@v5.5.2
-```
-
-- it'll automatically detect both the coverage file and token.
+- ```yml
+  - name: Upload coverage
+    uses: codecov/codecov-action@v5.5.2
+  ```
+  - it'll automatically detect both the coverage files and token.
 
 ## stack
 
