@@ -32,4 +32,4 @@ jobs:
         run: bun test --coverage --coverage-reporter=lcov
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.5.2 # Apparently, you don't need to explicitly tell codecov the coverage files and token anymore. this is all you need.
+        uses: codecov/codecov-action@v5.5.2
