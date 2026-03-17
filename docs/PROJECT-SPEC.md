@@ -13,11 +13,11 @@ The app powers two real features on your portfolio site, so this isn't a throwaw
 Two features. Nothing more.
 
 **1. Pet Counter** — a global counter that persists across deploys.
-**2. Kaomoji Collection** — a hardcoded collection of text faces. No rarity. Just kaomojis.
+**2. Kaomoji Collection** — a hardcoded collection of text faces.
 
 ---
 
-## API ENDPOINTS
+## FINAL API SURFACE
 
 ```
 GET  /api/pet-count          — current count
@@ -26,26 +26,94 @@ POST /api/pet                — increment (rate limited)
 GET  /api/kaomoji            — random kaomoji
 GET  /api/kaomoji/all        — full collection
 GET  /api/kaomoji/:id        — by index
-GET  /api/kaomoji/search?q=  — filter by name substring  ← NEW
+GET  /api/kaomoji/search?q=  — filter by name substring
 ```
 
-The search endpoint is the one new addition worth building. It's simple — a substring match on the `name` field — but it teaches you query param handling in Elysia (`t.Object` on `query`) and is actually useful for a frontend that wants to look up a specific face by keyword.
+You won't build all of these at once. Follow the milestones.
 
 ---
 
-## PERSISTENCE: UPSTASH REDIS
+## MILESTONE 1: PROJECT SKELETON + KAOMOJI COLLECTION
 
-The pet counter needs to survive redeploys. In the original, Cloudflare KV handled this. On ACA, you need an external store.
+Get the app running with the read-only kaomoji endpoints first. No persistence, no rate limiting, nothing fancy.
 
-**Use Upstash Redis (free tier).**
+### Build
+- Project setup: Bun + Elysia + `@elysiajs/swagger` + Biome
+- Implement these three endpoints:
+  ```
+  GET /api/kaomoji            — random kaomoji
+  GET /api/kaomoji/all        — full collection
+  GET /api/kaomoji/:id        — by index (404 on out-of-bounds)
+  ```
+- `KaomojiService` class that owns the collection and the three operations
+- Custom error class for the 404 case (follow `guestbook-api` pattern)
+- Swagger docs
 
-Why Upstash specifically:
+### Success Criteria
+- ✅ All three endpoints return correct responses
+- ✅ `GET /api/kaomoji/999` returns a clean 404, not a crash
+- ✅ Swagger UI works at `/swagger`
+- ✅ `bunx biome ci` passes
+
+---
+
+## MILESTONE 2: SEARCH + TESTS
+
+Add the search endpoint, then write tests for everything built so far.
+
+### Build
+- Add:
+  ```
+  GET /api/kaomoji/search?q=  — filter by name substring
+  ```
+- Validate `q` as an optional query param with TypeBox
+- If `q` is absent, behave the same as `GET /api/kaomoji` (return random)
+- Write the test suite covering all four kaomoji endpoints
+
+### Success Criteria
+- ✅ `GET /api/kaomoji/search?q=bear` returns only kaomojis whose name contains "bear"
+- ✅ `GET /api/kaomoji/search` without `q` returns a random kaomoji
+- ✅ `bun test` passes
+
+---
+
+## MILESTONE 3: BASIC CI
+
+Get GitHub Actions running before you touch persistence or Docker. Catch issues early.
+
+### Build
+Write `.github/workflows/ci.yml` yourself:
+- Trigger: push to all branches, PR to `main`
+- Steps:
+  1. `actions/checkout`
+  2. `oven-sh/setup-bun`
+  3. `bun ci`
+  4. `bunx biome ci`
+  5. `bun test --coverage --coverage-reporter=lcov`
+  6. Upload to Codecov (`codecov/codecov-action`)
+
+No deploy job yet. Just green CI.
+
+### Success Criteria
+- ✅ Push a branch → CI runs lint, format check, tests
+- ✅ Biome step fails on formatting drift
+- ✅ Break a test intentionally → CI goes red. Fix it → green.
+- ✅ Codecov badge works on README
+
+---
+
+## MILESTONE 4: PET COUNTER + PERSISTENCE
+
+Now add the stateful part.
+
+### Persistence: Upstash Redis
+
+The pet counter needs to survive redeploys. Use **Upstash Redis (free tier)**.
+
+Why Upstash:
 - Free tier: 10k commands/day, no expiry
 - HTTP-based REST API — no client library needed, just `fetch`
-- Works from anywhere (no IP allowlisting)
 - Zero config in ACA: two env vars (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`)
-
-You won't need the `ioredis` or `@upstash/redis` SDK. A raw `fetch` to their REST endpoint is enough for two commands (`GET`, `INCR`). This is intentional — you'll understand exactly what's happening.
 
 ```typescript
 // hint: it's this simple
@@ -54,58 +122,33 @@ const res = await fetch(`${UPSTASH_URL}/incr/pet_count`, {
 });
 ```
 
----
-
-## RATE LIMITING
-
-Same pattern as `guestbook-api`: in-memory `Map<string, number>` keyed by IP, with a cleanup interval. No Redis needed for rate limiting — it's per-instance and that's fine for a portfolio API.
-
-One difference from guestbook: the IP comes from `CF-Connecting-IP` (if you put it behind Cloudflare) or `X-Forwarded-For`. Make it configurable.
-
----
-
-## CORS
-
-Only two origins need access:
-```typescript
-const ALLOWED_ORIGINS = [
-  "https://tgr-wjya.github.io",
-  "http://localhost:3000",
-];
-```
-
-Handle the preflight `OPTIONS` and inject `Access-Control-Allow-Origin` in `onAfterHandle`. Don't use a wildcard `*` — your portfolio site is the only consumer.
-
----
-
-## MILESTONE 1: BUILD THE API
-
-### Requirements
-- All six endpoints above implemented
-- TypeBox validation on request body and query params
-- Rate limiting on `POST /api/pet` (1 req/sec per IP)
-- CORS for portfolio + localhost
-- Swagger docs via `@elysiajs/swagger`
-- Custom error classes (follow `guestbook-api` pattern)
-- Upstash integration for pet count persistence
+### Build
+- `PetCounterService` that wraps two Upstash calls: `get` and `increment`
+- Rate limiting on `POST /api/pet`: in-memory `Map<string, number>` + cleanup interval (same pattern as `guestbook-api`)
+- IP from `CF-Connecting-IP` or `X-Forwarded-For`
+- Implement:
+  ```
+  GET  /api/pet-count
+  POST /api/pet
+  ```
+- Add tests for both endpoints (mock the Upstash fetch)
+- Add CORS: only `https://tgr-wjya.github.io` and `http://localhost:3000`
 
 ### Success Criteria
 - ✅ `GET /api/pet-count` returns a number that persists across server restarts
-- ✅ `POST /api/pet` increments the counter and rate limits correctly
-- ✅ `GET /api/kaomoji/search?q=bear` returns only kaomojis whose name contains "bear"
-- ✅ `GET /api/kaomoji/999` returns a clean 404, not a crash
-- ✅ Swagger UI works at `/swagger`
-- ✅ `OPTIONS` preflight returns correct CORS headers
+- ✅ `POST /api/pet` increments and rate limits correctly
+- ✅ CORS headers are correct on all responses
+- ✅ `bun test` still passes with the new tests
 
 ---
 
-## MILESTONE 2: DOCKERFILE
+## MILESTONE 5: DOCKERFILE
 
-Same approach as `docker-mastery2`. Write it yourself, no copy-paste.
+Write it yourself, no copy-paste.
 
 ### Requirements
 - Base image: `oven/bun:1.3.10` (pin it, don't use `latest`)
-- Multi-stage: builder → runner (you've done this before)
+- Multi-stage: builder → runner
 - Non-root user
 - `COPY package*.json` before `COPY . .` (you know why)
 
@@ -117,63 +160,35 @@ Same approach as `docker-mastery2`. Write it yourself, no copy-paste.
 
 ---
 
-## MILESTONE 3: GITHUB ACTIONS CI
+## MILESTONE 6: CD WITH GHCR + ACA
 
-One pipeline, no CircleCI. Write `.github/workflows/ci.yml` yourself.
+Extend `ci.yml` with a deploy job. Container registry is **GitHub Container Registry (GHCR)** — free, no ACR needed.
 
-### Requirements
-- Trigger: push to all branches, PR to `main`
-- Steps in order:
-  1. `actions/checkout`
-  2. `oven-sh/setup-bun`
-  3. `bun ci`
-  4. `bunx biome ci` ← don't skip this like you almost did in docker-mastery
-  5. `bun test --coverage --coverage-reporter=lcov`
-  6. Upload to Codecov (`codecov/codecov-action`)
-- Deploy job: only on `main`, only if test job passes
-  - Follows same ACR/ACA pattern as `docker-mastery2`
-  - Tag with `${{ github.sha }}`
+### Build
+Add a `deploy` job to your existing workflow:
+- Runs only on `main`, only if `test` passes
+- Logs in to GHCR with `docker/login-action` using `GITHUB_TOKEN` (no extra secret needed)
+- Builds and pushes:
+  ```
+  ghcr.io/<your-github-username>/kaomoji-api:<sha>
+  ghcr.io/<your-github-username>/kaomoji-api:latest
+  ```
+- Updates ACA to the new image via `azure/login` + `az containerapp update`
+- Injects Upstash secrets as ACA environment variables
 
 ### Secrets Needed
 ```
 AZURE_CREDENTIALS
-ACR_NAME
-ACR_DNS_NAME
-CODECOV_TOKEN
-UPSTASH_REDIS_REST_URL       ← new
-UPSTASH_REDIS_REST_TOKEN     ← new
+UPSTASH_REDIS_REST_URL
+UPSTASH_REDIS_REST_TOKEN
 ```
 
-The Upstash secrets get injected as environment variables on `az containerapp update`. Don't hardcode them anywhere.
+`GITHUB_TOKEN` is automatic — GitHub injects it, you don't create it.
 
 ### Success Criteria
-- ✅ Push a branch → CI runs lint, format, tests
-- ✅ Biome CI step fails if there's a formatting drift
-- ✅ Push to `main` → image builds, pushes to ACR, ACA updates
-- ✅ Codecov badge works on the README
+- ✅ Push to `main` → image builds, pushes to GHCR, ACA updates
+- ✅ Pet count persists across deploys (deploy twice, check the count survives)
 - ✅ No credentials in code
-
----
-
-## MILESTONE 4: DEPLOY TO ACA
-
-Same flow as `docker-mastery2`. The only difference is that you need to set the Upstash env vars on the container app.
-
-```bash
-az containerapp update \
-  --name kaomoji-api \
-  --resource-group <rg> \
-  --image <acr>.azurecr.io/kaomoji-api:<sha> \
-  --set-env-vars \
-    UPSTASH_REDIS_REST_URL=secretref:upstash-url \
-    UPSTASH_REDIS_REST_TOKEN=secretref:upstash-token
-```
-
-### Success Criteria
-- ✅ Live URL works
-- ✅ Pet count persists across deploys (verify by deploying twice and checking the count)
-- ✅ `GET /api/kaomoji/search?q=table` returns the table-flip kaomojis
-- ✅ CORS headers are correct when called from the browser (check with devtools)
 - ✅ Portfolio site integration works end-to-end
 
 ---
@@ -193,8 +208,8 @@ You can ask for hints. You cannot ask for the solution.
 - Runtime: Bun + Elysia
 - Formatter/Linter: Biome
 - Container: Docker (multi-stage)
-- CI: GitHub Actions only
-- Registry: Azure Container Registry (ACR)
+- CI/CD: GitHub Actions only
+- Registry: GitHub Container Registry (GHCR)
 - Deploy: Azure Container Apps (ACA)
 - Persistence: Upstash Redis (HTTP REST API, no SDK)
 - Coverage: Codecov
@@ -203,8 +218,8 @@ You can ask for hints. You cannot ask for the solution.
 
 ## NOTES
 
-**On the ~15s cold start:** ACA scales to zero aggressively on the free tier. That's fine for a portfolio. If it ever bothers you, `min_replica: 1` fixes it at the cost of always-on compute spend.
+**On the ~15s cold start:** ACA scales to zero aggressively on the free tier. If it ever bothers you, `min_replica: 1` fixes it at the cost of always-on compute spend.
 
 **On Upstash free tier limits:** 10k commands/day. Each `POST /api/pet` costs 1 command (`INCR`), each `GET /api/pet-count` costs 1 command (`GET`). You'd need 10k portfolio visitors per day to hit the limit. You're fine.
 
-**On the search endpoint:** Elysia validates query params with `query: t.Object({ q: t.Optional(t.String()) })`. If `q` is absent, return the random kaomoji instead of erroring — that way `GET /api/kaomoji/search` without a query param still behaves sensibly.
+**On GHCR vs ACR:** GHCR is free for public repos and ties directly into GitHub Actions via `GITHUB_TOKEN` — no service principal, no registry credentials to manage. ACR only makes sense when you're already deep in the Azure ecosystem with multiple services sharing one registry.
