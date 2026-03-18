@@ -13,7 +13,7 @@ import { kaomojiService } from "./service/kaomoji.service";
 // TODO: Add API Group
 
 export function kaomojiApiApp(group = new kaomojiService()) {
-  const app = new Elysia().use(buildKaomojiRoutes(group)).use(swagger());
+	const app = new Elysia().use(buildKaomojiRoutes(group)).use(swagger());
 
-  return app;
+	return app;
 }
