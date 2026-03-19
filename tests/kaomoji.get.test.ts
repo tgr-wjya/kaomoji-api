@@ -20,6 +20,8 @@ describe("GET /api/kaomoji endpoints", () => {
 		app = kaomojiApiApp(service);
 	});
 
+	// TODO: Add `GET /api/kaomoji/:id` coverage for a valid index response.
+	// TODO: Add `GET /api/kaomoji/:id` coverage for the 404 path on out-of-bounds indices.
 	it("returns the full kaomoji collection from GET /api/kaomoji/all", async () => {
 		const response = await app.handle(
 			new Request(`${KAOMOJI_URL}/kaomoji/all`, {
@@ -33,6 +35,8 @@ describe("GET /api/kaomoji endpoints", () => {
 		expect(allKaomoji).toEqual(KAOMOJI_COLLECTION);
 	});
 
+	// TODO: Add `/api/kaomoji/search?q=bear` coverage and assert only matching names are returned.
+	// TODO: Add `/api/kaomoji/search` coverage without `q` and assert it falls back to a random kaomoji response shape.
 	it("returns a named random kaomoji from GET /api/kaomoji", async () => {
 		const response = await app.handle(
 			new Request(`${KAOMOJI_URL}/kaomoji`, {
@@ -44,5 +48,51 @@ describe("GET /api/kaomoji endpoints", () => {
 		const randomKaomoji = await response.json();
 		expect(randomKaomoji).toHaveProperty("name");
 		expect(randomKaomoji).toHaveProperty("kaomoji");
+	});
+
+	describe("GET /api/kaomoji/:id endpoints", () => {
+		it("Should correctly return kaomoji by its index", async () => {
+			const response = await app.handle(
+				new Request(`${KAOMOJI_URL}/kaomoji/2`, {
+					method: "GET",
+				}),
+			);
+
+			expect(response.status).toBe(200);
+			const indexKaomoji = await response.json();
+			expect(indexKaomoji).toEqual(KAOMOJI_COLLECTION[2]);
+		});
+
+		it("Should return 404 and constructor for invalid URL params", async () => {
+			const response = await app.handle(
+				new Request(`${KAOMOJI_URL}/kaomoji/99`, {
+					method: "GET",
+				}),
+			);
+
+			expect(response.status).toBe(404);
+			const invalidParams = await response.text();
+			expect(invalidParams).toBe("Kaomoji Not Found");
+		});
+
+		it("Should return 422, not meeting schema validation for both float and string params", async () => {
+			const float = await app.handle(
+				new Request(`${KAOMOJI_URL}/kaomoji/1.34`, {
+					method: "GET",
+				}),
+			);
+
+			expect(float.status).toBe(422);
+
+			Bun.sleep(4000);
+
+			const string = await app.handle(
+				new Request(`${KAOMOJI_URL}/kaomoji/hello`, {
+					method: "GET",
+				}),
+			);
+
+			expect(string.status).toBe(422);
+		});
 	});
 });

@@ -10,6 +10,8 @@ export interface Kaomoji {
 	name: string;
 }
 
+// TODO: Add shared request/response schemas here only if route validation starts to duplicate shape definitions.
+// TODO: If the custom not-found error grows beyond kaomoji, move it to a dedicated domain/error file instead.
 export const KAOMOJI_COLLECTION: Kaomoji[] = [
 	{ kaomoji: "ᵔᴥᵔ", name: "happy bear" },
 	{ kaomoji: "◉‿◉", name: "big eyes" },
