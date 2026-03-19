@@ -12,6 +12,8 @@ on:
 
 jobs:
   quality-checks:
+    # TODO: Add a deploy job for `main` that publishes the image to GHCR after this job passes.
+    # TODO: Log in to Azure and update the ACA image there once deployment wiring is ready.
     runs-on: ubuntu-latest
 
     steps:
@@ -33,3 +35,4 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.5.2
+        # TODO: Re-check the README coverage badge after the default branch starts uploading this report.
