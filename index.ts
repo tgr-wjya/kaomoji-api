@@ -2,7 +2,7 @@
  * Entrypoint for my kaomoji-api
  *
  * @author Tegar Wijaya Kusuma
- * @date 18 March 2026
+ * @date 19 March 2026
  */
 
 import { kaomojiApiApp } from "./src/app";

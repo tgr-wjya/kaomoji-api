@@ -3,7 +3,7 @@
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/tgr-wjya/kaomoji-api/ci.yml)
 [![codecov](https://codecov.io/gh/tgr-wjya/kaomoji-api/graph/badge.svg?token=2MM3tqOzJi)](https://codecov.io/gh/tgr-wjya/kaomoji-api)
 
-### 18 march 2026
+### 19 march 2026
 
 > a collection of kaomoji face, rest api for you
 

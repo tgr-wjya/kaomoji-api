@@ -11,7 +11,7 @@ on:
       - main
 
 jobs:
-  test-format-coverage:
+  quality-checks:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,8 +28,8 @@ jobs:
       - name: Biome CI
         run: bunx biome ci
 
-      - name: Bun Test With Coverage
-        run: bun test --coverage --coverage-reporter=lcov
+      - name: Run tests with coverage
+        run: bun run test:coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.5.2

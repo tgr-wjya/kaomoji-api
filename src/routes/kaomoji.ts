@@ -2,7 +2,7 @@
  * Kaomoji REST API Group
  *
  * @author Tegar Wijaya Kusuma
- * @date 18 March 2026
+ * @date 19 March 2026
  */
 
 import Elysia from "elysia";
