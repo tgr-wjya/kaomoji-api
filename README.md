@@ -72,7 +72,78 @@ check out the openapi documentation here: [kaomoji-api openapi docs]
   - name: Upload coverage
     uses: codecov/codecov-action@v5.5.2
   ```
+
   - it'll automatically detect both the coverage files and token.
+- between `t.Number()`, `t.Numeric()` and `t.Integer()` for your use case:
+  - `t.Numeric()`: numeric accepts a numeric string or number before transforming the value into a number.
+  - `t.Number()`: only accept number
+    - both works fine but be careful if your handler only accepting `Integer` which is just `1` or `2` and not `1.34` value.
+  - with `t.Integer()`: this solve the float params entirely.
+
+- i was wrong about elysia `onError`...
+  - elysia `onError` only catches errors thrown within the same plugin scope it's registered in. e.g. different scope meaning your `onError` won't be able to catch it.
+  - i mistakenly assumed `onError` on the parent catches everything from all plugins regardless of registration order and scope.
+  - turns out, it doesn't. the fix was simply moving `onError` inside `buildKaomojiRoutes` so it lives in the same scope as the errors it needs to catch.
+  - you essentially have multiple `onError` for as many as routes you have.
+- just found out about `it.each([])` and its awesome.
+- essentially, you can check multiple url with identical assertion for example asserting wildcard on different scope, for example.
+
+  - ```ts
+      it.each([
+        `${KAOMOJI_URL}/99`,
+        `${KAOMOJI_URL}/api/99`,
+        `${KAOMOJI_URL}/api/kaomoji/sgd9i1hwjk`,
+    ])("returns 404 with wildcard fields on %s", async (url) => {
+        const response = await app.handle(new Request(url, { method: "GET" }));
+
+        expect(response.status).toBe(404);
+        const body = (await response.json()) as WildcardError;
+        expect(body).toHaveProperty("error", "Not Found");
+        expect(body).toHaveProperty("timestamp");
+        expect(body.availableEndpoints).toEqual(availableEndpointsArray);
+        expect(body.availableEndpoints).toBeArray();
+    });
+    ```
+
+  - and `%s` interpolates the current url so each run is still individually labeled in output.
+
+- i accidentally double-encoded my `error.message` on `ValidationError`, it already is a JSON string so no need for `JSON.parse()` again.
+- how spread pattern on `onError` work:
+  - instead of having an early `returns` per branch like this:
+
+  - ```ts
+      if (error instanceof ValidationError) {
+        set.status = 422;
+        return {
+          error: error.message,
+        }
+      }
+    ```
+
+  - you can try accumulating `extras` and spread into one final `return` like this:
+
+  - ```typescript
+    .onError(({ set, error }) => {
+      const extra: Record<string, unknown> = {};
+
+      if (error instanceof ValidationError) {
+        set.status = 422;
+        extra.error = JSON.parse(error.message);
+      }
+
+      return {
+        error:
+          extra.error ??
+          (error instanceof Error ? error.message : "Unknown error"),
+        timestamp: new Date().toISOString(),
+        ...extra,
+      };
+    })
+    ```
+
+  - our `...extra` spreader would only return `extra` if it matches our `Error`.
+  - basically, if we have this: `if (error === 'Not Found')`
+  - then your extra would only print if that if is valid.
 
 ## stack
 

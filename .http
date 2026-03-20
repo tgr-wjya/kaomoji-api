@@ -1,7 +1,7 @@
 @baseUrl = http://localhost:3000
 
 ### GET Kaomoji by its index
-GET {{baseUrl}}/api/kaomoji/1
+GET {{baseUrl}}/api/kaomoji/1.13
 
 ### GET All Kaomoji
 GET {{baseUrl}}/api/kaomoji/all
