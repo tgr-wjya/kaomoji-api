@@ -6,14 +6,31 @@
  */
 
 import { Elysia, t } from "elysia";
+import { KaomojiNotFound, NotFoundException } from "../errors/error";
 import type { kaomojiService } from "../service/kaomoji.service";
 
-export function buildKaomojiRoutes(group: kaomojiService) {
+export function buildKaomojiRoutes(kaomoji: kaomojiService) {
 	return new Elysia().group("/api", (app) =>
 		app
-			// TODO: Add `GET /kaomoji/:id` and translate out-of-bounds service errors into a clean 404 response.
+			// api/kaomoji scope onError
+			.onError(({ set, error }) => {
+				const extra: Record<string, unknown> = {};
+
+				if (error instanceof KaomojiNotFound) {
+					set.status = error.status;
+				} else if (error instanceof NotFoundException) {
+					set.status = error.status;
+					extra.availableEndpoints = error.availableEndpoints;
+				}
+				return {
+					error: error instanceof Error ? error.message : "Unknown error",
+					timestamp: new Date().toISOString(),
+					...extra,
+				};
+			})
+
 			.get("/kaomoji/all", ({ set }) => {
-				const getAllKaomojis = group.getAll();
+				const getAllKaomojis = kaomoji.getAll();
 
 				set.status = 200;
 				return getAllKaomojis;
@@ -22,7 +39,7 @@ export function buildKaomojiRoutes(group: kaomojiService) {
 			// TODO: Add `GET /kaomoji/search?q=` with TypeBox query validation.
 			// TODO: If `q` is absent, make `/kaomoji/search` behave like `/kaomoji` and return a random entry.
 			.get("/kaomoji", ({ set }) => {
-				const getRandomKaomoji = group.getRandom();
+				const getRandomKaomoji = kaomoji.getRandom();
 
 				set.status = 200;
 				return getRandomKaomoji;
@@ -31,14 +48,13 @@ export function buildKaomojiRoutes(group: kaomojiService) {
 			.get(
 				"/kaomoji/:id",
 				async ({ params, set }) => {
-					const getIndex = group.getByIndex(params.id);
+					const getIndex = kaomoji.getByIndex(params.id);
 
 					set.status = 200;
 					return getIndex;
 				},
 				{
 					params: t.Object({
-						// TODO: This will silently return 200 with `undefined` for values like `1.5` unless `id` is restricted to integers before indexing the array.
 						id: t.Integer(),
 					}),
 				},
