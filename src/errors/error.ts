@@ -11,3 +11,13 @@ export class KaomojiNotFound extends Error {
 		super("Kaomoji Not Found");
 	}
 }
+
+export class NotFoundException extends Error {
+	status = 404;
+	availableEndpoints: string[];
+
+	constructor(availableEndpoints: string[]) {
+		super("Not Found");
+		this.availableEndpoints = availableEndpoints;
+	}
+}
