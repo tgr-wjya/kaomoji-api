@@ -7,7 +7,8 @@
 
 import { swagger } from "@elysiajs/swagger";
 import { Elysia, ValidationError } from "elysia";
-import { KaomojiNotFound } from "./errors/error";
+import { availableEndpointsArray } from "../tests/types";
+import { NotFoundException } from "./errors/error";
 import { buildKaomojiRoutes } from "./routes/kaomoji";
 import { kaomojiService } from "./service/kaomoji.service";
 
@@ -18,23 +19,36 @@ import { kaomojiService } from "./service/kaomoji.service";
 
 export function kaomojiApiApp(group = new kaomojiService()) {
 	const app = new Elysia()
-		.use(buildKaomojiRoutes(group))
-		.use(swagger())
-
+		// GLOBAL onError
 		.onError(({ set, error }) => {
-			if (error instanceof KaomojiNotFound) {
-				set.status = error.status;
-			} else if (error instanceof ValidationError) {
+			const extra: Record<string, unknown> = {};
+
+			if (error instanceof ValidationError) {
 				set.status = 422;
+				extra.error = JSON.parse(error.message);
+			} else if (error instanceof NotFoundException) {
+				set.status = error.status;
+				extra.availableEndpoints = error.availableEndpoints;
 			} else {
 				set.status = 500;
 			}
 
 			return {
-				error: error instanceof Error ? error.message : "Unknown error",
+				error:
+					extra.error ??
+					(error instanceof Error ? error.message : "Unknown error"),
 				timestamp: new Date().toISOString(),
+				...extra,
 			};
-		});
+		})
+
+		.all("/*", () => {
+			throw new NotFoundException(availableEndpointsArray);
+		})
+
+		.use(buildKaomojiRoutes(group))
+
+		.use(swagger());
 
 	return app;
 }
